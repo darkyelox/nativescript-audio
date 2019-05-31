@@ -41,6 +41,10 @@ export class AudioDemo extends Observable {
     }
   ];
   private _meterInterval: any;
+
+  private _timeInterval: any;
+  private _volumeInterval: any;
+
   private _slider: Slider;
 
   constructor(page: Page) {
@@ -166,6 +170,7 @@ export class AudioDemo extends Observable {
       completeCallback: async () => {
         alert('Audio file complete.');
         this.isPlaying = false;
+        this._clearIntervals()
         if (!playerOptions.loop) {
           await this._player.dispose();
           console.log('player disposed');
@@ -198,6 +203,7 @@ export class AudioDemo extends Observable {
       const playerOptions: AudioPlayerOptions = {
         audioFile: filepath,
         loop: false,
+        autoPlay: false,
         completeCallback: async () => {
           alert('Audio file complete.');
           await this._player.dispose();
@@ -216,20 +222,42 @@ export class AudioDemo extends Observable {
 
       this.isPlaying = true;
 
+      if (platform.isIOS) {
+        AVAudioSession.sharedInstance().setCategoryError(AVAudioSessionCategoryPlayback);
+      }
+
       if (fileType === 'localFile') {
-        await this._player.playFromFile(playerOptions).catch(() => {
+        await this._player.initFromFile(playerOptions).catch(() => {
           this.isPlaying = false;
         });
+
+        const playing = await this._player.play().catch(() => {
+          this.isPlaying = false;
+        });
+
+        console.log('playing', playing)
+
+        await this._player.seekTo(0)
+
         this.isPlaying = true;
         this.audioTrackDuration = await this._player.getAudioTrackDuration();
         // start audio duration tracking
         this._startDurationTracking(this.audioTrackDuration);
         this._startVolumeTracking();
       } else if (fileType === 'remoteFile') {
-        await this._player.playFromUrl(playerOptions).catch(() => {
+        await this._player.initFromUrl(playerOptions).catch(() => {
           this.isPlaying = false;
         });
+
+        this._player.play().catch(() => {
+          this.isPlaying = false;
+        });
+
+        this.audioTrackDuration = await this._player.getAudioTrackDuration();
         this.isPlaying = true;
+        // start audio duration tracking
+        this._startDurationTracking(this.audioTrackDuration);
+        this._startVolumeTracking();
       }
     } catch (ex) {
       console.log(ex);
@@ -241,7 +269,8 @@ export class AudioDemo extends Observable {
    */
   public playRemoteFile(args) {
     console.log('playRemoteFile');
-    const filepath = 'http://www.noiseaddicts.com/samples_1w72b820/2514.mp3';
+    // const filepath = 'http://www.noiseaddicts.com/samples_1w72b820/2514.mp3';
+    const filepath = 'http://3.82.136.102/storage/podcasts/ko1pyHoQcwU7x0k4fDg99cRjJBDpPdNDJaRJfOSw.mp3'
 
     this.playAudio(filepath, 'remoteFile');
   }
@@ -274,6 +303,7 @@ export class AudioDemo extends Observable {
 
   public async stopPlaying(args) {
     await this._player.dispose();
+    this._clearIntervals()
     alert('Media Player Disposed.');
   }
 
@@ -297,6 +327,11 @@ export class AudioDemo extends Observable {
     this._player.seekTo(8);
   }
 
+  public skipToFinal() {
+    const time = this._player.duration - 5
+    this._player.seekTo(time)
+  }
+
   public playSpeed1() {
     this._player.changePlayerSpeed(1);
   }
@@ -316,7 +351,7 @@ export class AudioDemo extends Observable {
 
   private async _startDurationTracking(duration) {
     if (this._player && this._player.isAudioPlaying()) {
-      const timerId = timer.setInterval(() => {
+      this._timeInterval = timer.setInterval(() => {
         this.remainingDuration = duration - this._player.currentTime;
         // console.log(`this.remainingDuration = ${this.remainingDuration}`);
       }, 1000);
@@ -325,11 +360,16 @@ export class AudioDemo extends Observable {
 
   private _startVolumeTracking() {
     if (this._player) {
-      const timerId = timer.setInterval(() => {
+      this._volumeInterval = timer.setInterval(() => {
         console.log('volume tracking', this._player.volume);
         this.currentVolume = this._player.volume;
       }, 2000);
     }
+  }
+
+  private _clearIntervals() {
+    clearInterval(this._timeInterval)
+    clearInterval(this._volumeInterval)
   }
 }
 

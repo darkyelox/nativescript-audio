@@ -64,14 +64,14 @@ export class TNSPlayer implements TNSPlayerI {
    * Initializes the player with options, will not start playing audio.
    * @param options [AudioPlayerOptions]
    */
-  public initFromFile(options: AudioPlayerOptions): Promise<any> {
+  public initFromFile(options: AudioPlayerOptions): Promise<boolean> {
     return new Promise((resolve, reject) => {
       options.autoPlay = false;
       this.playFromFile(options).then(resolve, reject);
     });
   }
 
-  public playFromFile(options: AudioPlayerOptions): Promise<any> {
+  public playFromFile(options: AudioPlayerOptions): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         if (options.autoPlay !== false) {
@@ -157,7 +157,7 @@ export class TNSPlayer implements TNSPlayerI {
                 TNS_Player_Log('options.autoPlay', options.autoPlay);
                 this.play();
               }
-              resolve();
+              resolve(true);
             }
           })
         );
@@ -172,20 +172,20 @@ export class TNSPlayer implements TNSPlayerI {
    * Initializes the player with options, will not start playing audio.
    * @param options
    */
-  public initFromUrl(options: AudioPlayerOptions): Promise<any> {
+  public initFromUrl(options: AudioPlayerOptions): Promise<boolean> {
     return new Promise((resolve, reject) => {
       options.autoPlay = false;
       this.playFromUrl(options).then(resolve, reject);
     });
   }
 
-  public playFromUrl(options: AudioPlayerOptions): Promise<any> {
+  public playFromUrl(options: AudioPlayerOptions): Promise<boolean> {
     return new Promise((resolve, reject) => {
       resolve(this.playFromFile(options));
     });
   }
 
-  public pause(): Promise<any> {
+  public pause(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player && this._player.isPlaying()) {
@@ -201,7 +201,7 @@ export class TNSPlayer implements TNSPlayerI {
     });
   }
 
-  public play(): Promise<any> {
+  public play(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player && !this._player.isPlaying()) {
@@ -230,15 +230,18 @@ export class TNSPlayer implements TNSPlayerI {
     });
   }
 
-  public resume(): void {
-    if (this._player) {
-      TNS_Player_Log('resume');
-      this._player.start();
-      this._sendEvent(AudioPlayerEvents.started);
-    }
+  public resume(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      if (this._player) {
+        TNS_Player_Log('resume');
+        this._sendEvent(AudioPlayerEvents.started);
+        this._player.start();
+        resolve(true);
+      }
+    });
   }
 
-  public seekTo(time: number): Promise<any> {
+  public seekTo(time: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
@@ -270,7 +273,7 @@ export class TNSPlayer implements TNSPlayerI {
     }
   }
 
-  public dispose(): Promise<any> {
+  public dispose(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
@@ -366,7 +369,7 @@ export class TNSPlayer implements TNSPlayerI {
   }
 
   private _getAndroidContext() {
-   let ctx = app.android.context;
+    let ctx = app.android.context;
     if (!ctx) {
       ctx = app.getNativeApplication().getApplicationContext();
     }

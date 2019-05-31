@@ -37,12 +37,12 @@ export interface TNSPlayerI {
   /**
    * Starts playing audio file from local app files.
    */
-  playFromFile(options: AudioPlayerOptions): Promise<any>;
+  playFromFile(options: AudioPlayerOptions): Promise<boolean>;
 
   /**
    * Starts playing audio file from url
    */
-  playFromUrl(options: AudioPlayerOptions): Promise<any>;
+  playFromUrl(options: AudioPlayerOptions): Promise<boolean>;
 
   /**
    * Play audio file.
@@ -62,7 +62,7 @@ export interface TNSPlayerI {
   /**
    * Releases resources from the audio player.
    */
-  dispose(): Promise<boolean>;
+  dispose(): Promise<void>;
 
   /**
    * Check if the audio is actively playing.
